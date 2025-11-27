@@ -8,7 +8,6 @@ export default function MatchList({ matches, onUpdate, onDelete }: {
 }) {
   const [editingId, setEditingId] = useState<number | null>(null)
   const editing = useMemo(() => matches.find(m => m.id === editingId) ?? null, [editingId, matches])
-  const [form, setForm] = useState({ team1: '', team2: '', score: '' })
   const [scoreA, setScoreA] = useState<number>(0)
   const [scoreB, setScoreB] = useState<number>(0)
 
@@ -20,14 +19,13 @@ export default function MatchList({ matches, onUpdate, onDelete }: {
 
   const startEdit = (m: Match) => {
     setEditingId(m.id)
-    setForm({ team1: m.team1, team2: m.team2, score: m.score })
     const { a, b } = parseScore(m.score)
     setScoreA(a)
     setScoreB(b)
   }
-  const cancel = () => {
-    setEditingId(null)
-  }
+  
+  const cancel = () => setEditingId(null)
+  
   const save = async () => {
     if (!editing) return
     const normalized = `${Number.isFinite(scoreA) ? scoreA : 0} : ${Number.isFinite(scoreB) ? scoreB : 0}`
@@ -36,48 +34,66 @@ export default function MatchList({ matches, onUpdate, onDelete }: {
   }
 
   return (
-    <div className="list">
-      {matches.length === 0 && <div className="muted">No matches yet</div>}
+    <div className="match-list">
+      {matches.length === 0 && (
+        <div className="panel" style={{padding: 60, textAlign: 'center', color: '#444'}}>
+          <div style={{fontSize: 40, marginBottom: 10, opacity: 0.3}}>⚽</div>
+          <div style={{textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600}}>No Live Matches</div>
+        </div>
+      )}
+      
       {matches.map(m => (
-        <div key={m.id} className="card">
-          {editingId === m.id ? (
-            <div className="row wrap" style={{ gap: 12 }}>
-              <div style={{ fontSize: 18 }}>
-                <strong>{m.team1}</strong> vs <strong>{m.team2}</strong>
+        <div key={m.id} className="match-card">
+          {/* Main Broadcast View */}
+          <div className="match-content">
+            <div className="team-name team-left">{m.team1}</div>
+            
+            <div className="score-container">
+              <div className="score-display">
+                {editingId === m.id ? 'PENDING' : m.score}
               </div>
-              <div className="row" style={{ gap: 8, marginLeft: 'auto' }}>
-                <button className="btn" type="button" onClick={() => setScoreA(v => Math.max(0, (v ?? 0) - 1))}>-</button>
-                <input
-                  className="input"
-                  type="number"
-                  min={0}
-                  value={Number.isFinite(scoreA) ? scoreA : 0}
-                  onChange={e => setScoreA(Math.max(0, Number(e.target.value) || 0))}
-                  style={{ width: 68, textAlign: 'center' }}
-                />
-                <span className="score" style={{ lineHeight: '1' }}>:</span>
-                <input
-                  className="input"
-                  type="number"
-                  min={0}
-                  value={Number.isFinite(scoreB) ? scoreB : 0}
-                  onChange={e => setScoreB(Math.max(0, Number(e.target.value) || 0))}
-                  style={{ width: 68, textAlign: 'center' }}
-                />
-                <button className="btn" type="button" onClick={() => setScoreB(v => (v ?? 0) + 1)}>+</button>
-                <button className="btn btn-primary" type="button" onClick={save}>Save</button>
-                <button className="btn btn-ghost" type="button" onClick={cancel}>Cancel</button>
+              <div className="live-badge">
+                 <span className="pulsar"></span> LIVE
               </div>
             </div>
+            
+            <div className="team-name team-right">{m.team2}</div>
+          </div>
+
+          {/* Admin / Edit Drawer */}
+          {editingId === m.id ? (
+            <div className="control-panel">
+               <div className="input-row">
+                  <button className="btn btn-dark btn-icon" onClick={() => setScoreA(v => Math.max(0, (v ?? 0) - 1))}>-</button>
+                  <input
+                    className="modern-input score-input"
+                    type="number"
+                    min={0}
+                    value={Number.isFinite(scoreA) ? scoreA : 0}
+                    onChange={e => setScoreA(Math.max(0, Number(e.target.value) || 0))}
+                  />
+                  <span style={{color: '#666', fontWeight: 'bold'}}>:</span>
+                  <input
+                    className="modern-input score-input"
+                    type="number"
+                    min={0}
+                    value={Number.isFinite(scoreB) ? scoreB : 0}
+                    onChange={e => setScoreB(Math.max(0, Number(e.target.value) || 0))}
+                  />
+                  <button className="btn btn-dark btn-icon" onClick={() => setScoreB(v => (v ?? 0) + 1)}>+</button>
+               </div>
+               
+               <div style={{display: 'flex', gap: 10, justifyContent: 'center'}}>
+                 <button className="btn btn-primary" onClick={save}>UPDATE BOARD</button>
+                 <button className="btn btn-ghost" onClick={cancel}>CANCEL</button>
+               </div>
+            </div>
           ) : (
-            <div className="row">
-              <div style={{ fontSize: 18 }}>
-                <strong>{m.team1}</strong> vs <strong>{m.team2}</strong>
-              </div>
-              <div className="row" style={{ gap: 16 }}>
-                <span className="score">{m.score}</span>
-                <button className="btn" onClick={() => startEdit(m)}>Edit</button>
-                <button className="btn btn-danger" onClick={() => onDelete(m.id)}>Delete</button>
+            <div className="control-panel" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 20px', background: '#111'}}>
+              <span className="muted" style={{fontSize: 10}}>MATCH ID: #{m.id}</span>
+              <div style={{display: 'flex', gap: 8}}>
+                 <button className="btn btn-dark" style={{padding: '6px 12px', fontSize: 11}} onClick={() => startEdit(m)}>MANAGE SCORE</button>
+                 <button className="btn btn-danger" style={{padding: '6px 12px', fontSize: 11}} onClick={() => onDelete(m.id)}>END MATCH</button>
               </div>
             </div>
           )}
